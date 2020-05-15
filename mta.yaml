@@ -2,3 +2,12 @@ ID: mtadevicemodelonboarding
 _schema-version: '2.1'
 description: MTA Device Model Onboarding
 version: 0.0.1
+
+modules:
+ - name: devicemodelnodejs
+   type: nodejs
+   path: devicemodelnodejs
+   provides:
+    - name: devicemodelnodejs_api
+      properties:
+         url: ${default-url}
