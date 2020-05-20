@@ -7,24 +7,52 @@ var port = process.env.PORT || 3000;
 var https = require("https");
 var request = require("request");
 
-app.get('/DeviceTest1', function (req, res) {
+
+app.get('/CreateCapability', function (req, res) {
 	//	console.log(req.body);
-		console.log ("Hi below is request body");
+	console.log ("Hi below is request body for POST");
+	//console.log(fs.readFileSync(CERTIFICATE_FILE));
+	var PostMsg={
+			"alternateId": "mescap5",
+			"name": "MESTempCapability5",
+			"properties": [
+    			{
+    				"dataType": "float",
+    				"formatter": {
+        				"dataType": "float",
+        				"scale": 0,
+        				"shift": 0,
+        				"swap": true
+    				},
+    				"name": "MESTempProp5",
+    				"unitOfMeasure": "Celsius"
+    			}
+			]
+		};
+		
+//	var postData =  "{\n  \"alternateId\": \"mescap4\",\n  \"name\": \"MESTempCapability4\",\n  \"properties\": [\n    {\n      \"dataType\": \"float\",\n      \"formatter\": {\n        \"dataType\": \"float\",\n        \"scale\": 0,\n        \"shift\": 0,\n        \"swap\": true\n      },\n      \"name\": \"MESTempProp4\",\n      \"unitOfMeasure\": \"Celsius\"\n    }\n  ]\n}";
+	
 	var options = {
-		hostname: 'ibmprod.eu10.cp.iot.sap',
-		port: null,
-		//path: '/iot/processing/api/v1/tenant/2/measures/capabilities/'+capacityId+'?filter=(sensorId%20eq%20%27'+sensorId+'%27)&skip=0&top=100', 
-		path: '/iot/processing/api/v1/tenant/2/measures/capabilities/a0a616fa-9c58-466d-835e-18e5b8f6e5b5?filter=(sensorId%20eq%20%2752f54ec1-8df2-4e2a-bf11-5624a6b319fe%27)&skip=0&top=100', 
-		
-		//path: '/ibmprod/iot/core/api/v1/tenant/2/devices/cbe4ee84-048c-4b78-9e56-2565782f0099/measures?skip=0&top=100', 
-	//	https://ibmprod.eu10.cp.iot.sap/ibmprod/iot/core/api/v1/tenant/2/devices/cbe4ee84-048c-4b78-9e56-2565782f0099/measures?skip=0&top=100
-		method: 'GET',
-		
-		headers: {
-			   "cache-control": "no-cache",
-           "authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ="
+		 method: 'POST',
+		 hostname: 'ibmprod.eu10.cp.iot.sap',
+		 port: null,
+		 path: '/ibmprod/iot/core/api/v1/tenant/2/capabilities',
+		 //cert: fs.readFileSync(CERTIFICATE_FILE_PEM),
+		 //key: fs.readFileSync(CERTIFICATE_FILE_PEM),
+         //passphrase: 'yTRWxuva3gR6HIbIhRzqe1Orfa8yulyYJy3x',
+        // "authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ=",
+		 headers: {
+		"accept": "*/*",
+    	"content-type": "application/json",
+    	"cache-control": "no-cache",
+    	"authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ="
 		}
+		/*agentOptions: {
+        pfx: fs.readFileSync(CERTIFICATE_FILE_P12),
+        passphrase: 'tHRsLVoPVeylHwRxWzOvVCxqAt1Pt8koIFS9'
+    	}*/
 	};
+	var dataEncoded=JSON.stringify(PostMsg);
 
 var requst=	https.request(options, function (resp) {
 		var body = '';
@@ -32,27 +60,24 @@ var requst=	https.request(options, function (resp) {
 
 		resp.on('data', function (chunk) {
 			body += chunk;
-		  chunks.push(chunk);
+		  //chunks.push(chunk);
 			
 		});
 		
 		resp.on('end', function () {
 			var dat = body;
-			 var bod = Buffer.concat(chunks);
-          //  console.log(bod.toString());
-		//	console.log ("Hi");
-		//	console.log(dat);
-			
-		res.type("application/json").status(200).send(dat);
+			//var bod = Buffer.concat(chunks);
+
+		res.type("application/json").status(202).send(dat);
 		});
 
-		//console.log("Server listening on port %d", port);
 	});
+	
+	//requst.write(postData);
+	requst.write(dataEncoded);
     requst.end();
 
 });
-
-
 
 /*http.createServer(function (req, res) {
   res.writeHead(200, {"Content-Type": "text/plain"});
