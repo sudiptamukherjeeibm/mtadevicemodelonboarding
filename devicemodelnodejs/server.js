@@ -6,15 +6,95 @@ var http = require("http");
 var port = process.env.PORT || 3000;
 var https = require("https");
 var request = require("request");
+var bodyParser = require('body-parser');
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
+	extended: false
+}));
+app.post('/CreateCapabilityMES', function (req, res) {
+	//	console.log(req.body);
+	
+var alternateIdCap = req.body.alternateId;
+var CapabilityName = req.body.name;
+var PropName = req.body.propertyname;
+var dataTypeProp = req.body.dataType;
+var UOM = req.body.unitOfMeasure;
+	console.log ("Hi below is request body for POST");
+	//console.log(fs.readFileSync(CERTIFICATE_FILE));
+	var PostMsg={
+			"alternateId": alternateIdCap,
+			"name": CapabilityName,
+			"properties": [
+    			{
+    				"dataType": dataTypeProp,
+    				"formatter": {
+        				"dataType": dataTypeProp,
+        				"scale": 0,
+        				"shift": 0,
+        				"swap": true
+    				},
+    				"name": PropName,
+    				"unitOfMeasure": UOM
+    			}
+			]
+		};
+		
+//	var postData =  "{\n  \"alternateId\": \"mescap4\",\n  \"name\": \"MESTempCapability4\",\n  \"properties\": [\n    {\n      \"dataType\": \"float\",\n      \"formatter\": {\n        \"dataType\": \"float\",\n        \"scale\": 0,\n        \"shift\": 0,\n        \"swap\": true\n      },\n      \"name\": \"MESTempProp4\",\n      \"unitOfMeasure\": \"Celsius\"\n    }\n  ]\n}";
+	
+	var options = {
+		 method: 'POST',
+		 hostname: 'ibmprod.eu10.cp.iot.sap',
+		 port: null,
+		 path: '/ibmprod/iot/core/api/v1/tenant/2/capabilities',
+		 //cert: fs.readFileSync(CERTIFICATE_FILE_PEM),
+		 //key: fs.readFileSync(CERTIFICATE_FILE_PEM),
+         //passphrase: 'yTRWxuva3gR6HIbIhRzqe1Orfa8yulyYJy3x',
+        // "authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ=",
+		 headers: {
+		"accept": "*/*",
+    	"content-type": "application/json",
+    	"cache-control": "no-cache",
+    	"authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ="
+		}
+		/*agentOptions: {
+        pfx: fs.readFileSync(CERTIFICATE_FILE_P12),
+        passphrase: 'tHRsLVoPVeylHwRxWzOvVCxqAt1Pt8koIFS9'
+    	}*/
+	};
+	var dataEncoded=JSON.stringify(PostMsg);
 
+var requst=	https.request(options, function (resp) {
+		var body = '';
+		 var chunks = [];
+
+		resp.on('data', function (chunk) {
+			body += chunk;
+		  //chunks.push(chunk);
+			
+		});
+		
+		resp.on('end', function () {
+			var dat = body;
+			//var bod = Buffer.concat(chunks);
+
+		res.type("application/json").status(202).send(dat);
+		});
+
+	});
+	
+	//requst.write(postData);
+	requst.write(dataEncoded);
+    requst.end();
+
+});
 
 app.get('/CreateCapability', function (req, res) {
 	//	console.log(req.body);
 	console.log ("Hi below is request body for POST");
 	//console.log(fs.readFileSync(CERTIFICATE_FILE));
 	var PostMsg={
-			"alternateId": "mescap5",
-			"name": "MESTempCapability5",
+			"alternateId": "mescap7",
+			"name": "MESTempCapability7",
 			"properties": [
     			{
     				"dataType": "float",
@@ -24,7 +104,7 @@ app.get('/CreateCapability', function (req, res) {
         				"shift": 0,
         				"swap": true
     				},
-    				"name": "MESTempProp5",
+    				"name": "MESTempProp7",
     				"unitOfMeasure": "Celsius"
     			}
 			]
