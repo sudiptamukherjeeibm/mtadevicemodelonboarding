@@ -11,6 +11,128 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
 	extended: false
 }));
+app.post('/GetDeviceFromMES', function (req, res) {
+	
+var HostName= req.body.HostName;
+var TenantId= req.body.TenantId;
+var Path= '/ibmprod/iot/core/api/v1/tenant/'+TenantId+'/devices';
+var options = {
+  method: 'GET',
+  hostname: HostName,
+  path: Path,
+  headers: {
+    "authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ=",
+	"content-type": "application/json"
+  }
+
+};
+
+var req = https.request(options, function (resp) {
+  var chunks = [];
+   
+  resp.on('data', function (chunk) {
+    chunks.push(chunk);
+  });
+
+  resp.on("end", function (chunk) {
+    var body = Buffer.concat(chunks);
+    console.log(body.toString());
+	res.type("application/json").status(202).send(body);
+  });
+				   
+
+  resp.on("error", function (error) {
+    console.error(error);
+  });
+});
+
+req.end();
+
+});
+
+app.post('/CreateDeviceMES', function (req, res) {
+	
+var HostName= req.body.HostName;
+var TenantId= req.body.TenantId;
+var Path= '/ibmprod/iot/core/api/v1/tenant/'+TenantId+'/devices';
+var alternateIdDev = req.body.alternateId;
+var DeviceKey = req.body.DeviceKey;
+var DeviceVal = req.body.DeviceVal;
+var GatewayID= req.body.GatewayID;
+var DeviceName = req.body.DeviceName;
+var alternateIdSen = req.body.alternateId;
+var SensorKey = req.body.SensorKey;
+var SensorValue = req.body.SensorValue;
+var SensorName = req.body.SensorName;
+var SensorTypeId = req.body.SensorTypeId;
+
+	var PostMsg={
+  "alternateId": alternateIdDev,
+  "customProperties": [
+    {
+      "key": DeviceKey,
+      "value": DeviceVal
+    }
+  ],
+  "gatewayId": GatewayID,
+  "name": DeviceName,
+  "sensors": [
+    {
+      "alternateId": alternateIdSen,
+      "customProperties": [
+        {
+          "key": SensorKey,
+          "value": SensorValue
+        }
+      ],
+      "name": SensorName,
+      "sensorTypeId": SensorTypeId
+    }
+  ]
+};
+
+	
+	var options = {
+		 method: 'POST',
+		 hostname: HostName,
+		 port: null,
+		 path: Path ,
+
+		 headers: {
+		"accept": "*/*",
+    	"content-type": "application/json",
+    	"cache-control": "no-cache",
+    	"authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ="
+		}
+
+	};
+	var dataEncoded=JSON.stringify(PostMsg);
+
+var requst=	https.request(options, function (resp) {
+		var body = '';
+		 var chunks = [];
+
+		resp.on('data', function (chunk) {
+			body += chunk;
+		  //chunks.push(chunk);
+			
+		});
+		
+		resp.on('end', function () {
+			var dat = body;
+			//var bod = Buffer.concat(chunks);
+
+		res.type("application/json").status(202).send(dat);
+		});
+
+	});
+	
+	//requst.write(postData);
+	requst.write(dataEncoded);
+    requst.end();
+
+});
+
 
 app.post('/GetSensorTypeFromMES', function (req, res) {
 	
