@@ -1,6 +1,7 @@
 /*eslint no-console: 0*/
 "use strict";
 var express = require("express");
+var async = require("async");
 var app = express();
 var http = require("http");
 var port = process.env.PORT || 3000;
@@ -11,6 +12,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
 	extended: false
 }));
+
+
 app.post('/GetDeviceFromMES', function (req, res) {
 	
 var HostName= req.body.HostName;
@@ -347,76 +350,109 @@ var requst=	https.request(options, function (resp) {
 
 });
 
-app.get('/CreateCapability', function (req, res) {
-	//	console.log(req.body);
-	console.log ("Hi below is request body for POST");
-	//console.log(fs.readFileSync(CERTIFICATE_FILE));
-	var PostMsg={
-			"alternateId": "mescap7",
-			"name": "MESTempCapability7",
+/*POST service to create multiple Capabilities at a time using Asyncronous way
+JSON Body sample
+{
+	"CreateCapability" : {
+		"HostName" : "ibmprod.eu10.cp.iot.sap",
+		"TenantId" : 2,
+		"alternateId" : ["mescap7","mescap8"],
+		"name" : ["MESTempCapability7","MESTempCapability8"],
+		"propertyname" : ["MESTempProp7","MESTempProp8"],
+		"dataType" : ["float","float"],
+		"unitOfMeasure" : ["Celsius","Celsius"]
+	}
+}
+*/
+app.post('/CreateCapabilityAsync', function (req, res) {
+	
+	var HostName= req.body.CreateCapability.HostName;
+	var TenantId= req.body.CreateCapability.TenantId;	
+	var alternateIdCap = req.body.CreateCapability.alternateId;
+	var CapabilityName = req.body.CreateCapability.name;
+	var PropName = req.body.CreateCapability.propertyname;
+	var dataTypeProp = req.body.CreateCapability.dataType;
+	var UOM = req.body.CreateCapability.unitOfMeasure;
+	var ResponseArray = [];
+	console.log (UOM);
+	async.each(CapabilityName, function (eachCapability, callback) {
+		
+		var currentitem = CapabilityName.indexOf(eachCapability);
+		var PostMsg={
+			"alternateId": alternateIdCap[currentitem],
+			"name": CapabilityName[currentitem],
 			"properties": [
     			{
-    				"dataType": "float",
+    				"dataType": dataTypeProp[currentitem],
     				"formatter": {
-        				"dataType": "float",
+        				"dataType": dataTypeProp[currentitem],
         				"scale": 0,
         				"shift": 0,
         				"swap": true
     				},
-    				"name": "MESTempProp7",
-    				"unitOfMeasure": "Celsius"
+    				"name": PropName[currentitem],
+    				"unitOfMeasure": UOM[currentitem]
     			}
 			]
 		};
 		
-//	var postData =  "{\n  \"alternateId\": \"mescap4\",\n  \"name\": \"MESTempCapability4\",\n  \"properties\": [\n    {\n      \"dataType\": \"float\",\n      \"formatter\": {\n        \"dataType\": \"float\",\n        \"scale\": 0,\n        \"shift\": 0,\n        \"swap\": true\n      },\n      \"name\": \"MESTempProp4\",\n      \"unitOfMeasure\": \"Celsius\"\n    }\n  ]\n}";
+		var options = {
+			 method: 'POST',
+			 hostname: HostName,
+			 port: null,
+			 path: '/ibmprod/iot/core/api/v1/tenant/'+TenantId+'/capabilities',
+			 headers: {
+			"accept": "*/*",
+	    	"content-type": "application/json",
+	    	"cache-control": "no-cache",
+	    	"authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ="
+			}
+		};
 	
-	var options = {
-		 method: 'POST',
-		 hostname: 'ibmprod.eu10.cp.iot.sap',
-		 port: null,
-		 path: '/ibmprod/iot/core/api/v1/tenant/2/capabilities',
-		 //cert: fs.readFileSync(CERTIFICATE_FILE_PEM),
-		 //key: fs.readFileSync(CERTIFICATE_FILE_PEM),
-         //passphrase: 'yTRWxuva3gR6HIbIhRzqe1Orfa8yulyYJy3x',
-        // "authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ=",
-		 headers: {
-		"accept": "*/*",
-    	"content-type": "application/json",
-    	"cache-control": "no-cache",
-    	"authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ="
-		}
-		/*agentOptions: {
-        pfx: fs.readFileSync(CERTIFICATE_FILE_P12),
-        passphrase: 'tHRsLVoPVeylHwRxWzOvVCxqAt1Pt8koIFS9'
-    	}*/
-	};
-	var dataEncoded=JSON.stringify(PostMsg);
-
-var requst=	https.request(options, function (resp) {
-		var body = '';
-		 var chunks = [];
-
-		resp.on('data', function (chunk) {
-			body += chunk;
-		  //chunks.push(chunk);
-			
+		var dataEncoded=JSON.stringify(PostMsg);
+		
+		var requst = https.request(options, function (resp) {
+			var body = '';
+			resp.on('data', function (chunk) {
+				//console.log("entered in data");
+				body += chunk;
+			});
+			resp.on('end', function () {
+				//console.log("entered in end");
+				var dat = body;
+				//console.log(dat);
+				var msg = JSON.parse(dat);
+				console.log(msg.name);
+				ResponseArray.push(msg.name);
+				callback(null);
+			});
 		});
 		
-		resp.on('end', function () {
-			var dat = body;
-			//var bod = Buffer.concat(chunks);
+		requst.write(dataEncoded);
+		requst.end();
+		// Async call is done, alert via callback
 
-		res.type("application/json").status(202).send(dat);
-		});
-
-	});
-	
-	//requst.write(postData);
-	requst.write(dataEncoded);
-    requst.end();
+	}, function (err) {
+		console.log("After successfully pushing data in response array");
+		console.log(err);
+		//If any of the user creation failed may throw error.
+		if (err) {
+			// One of the iterations produced an error.
+			// All processing will now stop.
+			console.log('something went wrong');
+		} else {
+			console.log("response array is:");
+			console.log(ResponseArray);
+			console.log("response array length is:");
+			console.log(ResponseArray.length);
+			res.type("application/json").status(202).send(ResponseArray);
+			console.log("Success");
+		}
+	}); 
 
 });
+
+
 
 /*http.createServer(function (req, res) {
   res.writeHead(200, {"Content-Type": "text/plain"});
