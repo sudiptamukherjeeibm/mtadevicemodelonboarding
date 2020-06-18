@@ -58,12 +58,12 @@ app.post('/CreateDeviceMES', function (req, res) {
 var HostName= req.body.HostName;
 var TenantId= req.body.TenantId;
 var Path= '/ibmprod/iot/core/api/v1/tenant/'+TenantId+'/devices';
-var alternateIdDev = req.body.alternateId;
+var alternateIdDev = req.body.alternateIdDev;
 var DeviceKey = req.body.DeviceKey;
 var DeviceVal = req.body.DeviceVal;
 var GatewayID= req.body.GatewayID;
 var DeviceName = req.body.DeviceName;
-var alternateIdSen = req.body.alternateId;
+var alternateIdSen = req.body.alternateIdSen;
 var SensorKey = req.body.SensorKey;
 var SensorValue = req.body.SensorValue;
 var SensorName = req.body.SensorName;
@@ -451,8 +451,130 @@ app.post('/CreateCapabilityAsync', function (req, res) {
 	}); 
 
 });
+/*POST service to create multiple Devices at a time using Asyncronous way
+JSON Body sample
+{
+	"CreateDevice" : {
+"HostName" : "ibmprod.eu10.cp.iot.sap",
+ "TenantId": "2",
+ "alternateIdDev" : ["AsyncDevice1","AsyncDevice2"],
+ "DeviceKey" : ["DevKey1","DevKey2"],
+ "DeviceVal" : ["DevVal1","DevVal2"],
+ "GatewayID" : ["3","3"],
+ "DeviceName" : ["DeviceMES06","DeviceMES05"],
+ "alternateIdSen" : ["AsyncSensor1","AsyncSensor2"],
+ "SensorKey" : ["SenKey1","SenKey2"],
+ "SensorValue" : ["SenVal1","SenVal12"],
+ "SensorName" : ["SensorMES04","SensorMES05"],
+ "SensorTypeId" : ["032fcf31-7b84-41e8-8ef9-50a7b2a48bd7","032fcf31-7b84-41e8-8ef9-50a7b2a48bd7"]
+ }
+}*/
 
+app.post('/CreateDeviceAsync', function (req, res) {
+	
+var HostName= req.body.CreateDevice.HostName;
+var TenantId= req.body.CreateDevice.TenantId;
+var Path= '/ibmprod/iot/core/api/v1/tenant/'+TenantId+'/devices';
+var alternateIdDev = req.body.CreateDevice.alternateIdDev;
+var DeviceKey = req.body.CreateDevice.DeviceKey;
+var DeviceVal = req.body.CreateDevice.DeviceVal;
+var GatewayID= req.body.CreateDevice.GatewayID;
+var DeviceName = req.body.CreateDevice.DeviceName;
+var alternateIdSen = req.body.CreateDevice.alternateIdSen;
+var SensorKey = req.body.CreateDevice.SensorKey;
+var SensorValue = req.body.CreateDevice.SensorValue;
+var SensorName = req.body.CreateDevice.SensorName;
+var SensorTypeId = req.body.CreateDevice.SensorTypeId;
+var ResponseArray = [];
+	
+	async.each(DeviceName, function (eachDevice, callback) {
+		
+		var currentitem = DeviceName.indexOf(eachDevice);
+	var PostMsg={
+  "alternateId": alternateIdDev[currentitem],
+  "customProperties": [
+    {
+      "key": DeviceKey[currentitem],
+      "value": DeviceVal[currentitem]
+    }
+  ],
+  "gatewayId": GatewayID[currentitem],
+  "name": DeviceName[currentitem],
+  "sensors": [
+    {
+      "alternateId": alternateIdSen[currentitem],
+      "customProperties": [
+        {
+          "key": SensorKey[currentitem],
+          "value": SensorValue[currentitem]
+        }
+      ],
+      "name": SensorName[currentitem],
+      "sensorTypeId": SensorTypeId[currentitem]
+    }
+  ]
+};
 
+	
+	var options = {
+		 method: 'POST',
+		 hostname: HostName,
+		 port: null,
+		 path: Path ,
+
+		 headers: {
+		"accept": "*/*",
+    	"content-type": "application/json",
+    	"cache-control": "no-cache",
+    	"authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ="
+		}
+
+	};
+	var dataEncoded=JSON.stringify(PostMsg);
+
+var requst=	https.request(options, function (resp) {
+		var body = '';
+		 
+
+		resp.on('data', function (chunk) {
+			body += chunk;
+		  //chunks.push(chunk);
+			
+		});
+		
+		resp.on('end', function () {
+			var dat = body;
+			//var bod = Buffer.concat(chunks);
+		var msg = JSON.parse(dat);
+				console.log(msg.name);
+				ResponseArray.push(msg.name);
+				callback(null);
+		
+		});
+
+	});
+	
+	//requst.write(postData);
+	requst.write(dataEncoded);
+    requst.end();
+}, function (err) {
+		console.log("After successfully pushing data in response array");
+		console.log(err);
+		//If any of the user creation failed may throw error.
+		if (err) {
+			// One of the iterations produced an error.
+			// All processing will now stop.
+			console.log('something went wrong');
+		} else {
+			console.log("response array is:");
+			console.log(ResponseArray);
+			console.log("response array length is:");
+			console.log(ResponseArray.length);
+			res.type("application/json").status(202).send(ResponseArray);
+			console.log("Success");
+		}
+	}); 
+});
 
 /*http.createServer(function (req, res) {
   res.writeHead(200, {"Content-Type": "text/plain"});
