@@ -575,6 +575,116 @@ var requst=	https.request(options, function (resp) {
 		}
 	}); 
 });
+/*POST service to create multiple Sensor Types at a time using Asyncronous way
+JSON Body sample
+{
+	"CreateSensor" : {
+"HostName" : "ibmprod.eu10.cp.iot.sap",
+ "TenantId": "2",
+ "alternateIdSensor" : [214,215],
+ "SensorName" : ["testMonamiSensorType14","testMonamiSensorType15"],
+ "capabilityId" : ["51f22bdc-672c-4fe3-9f93-88ba2e553465","4f2dd1cd-d757-4506-9850-20379c1b7fe4"],
+ "sensorType" : ["measure","measure"]
+ }
+}*/
+app.post('/CreateSensorTypeAsync', function (req, res) {
+	//	console.log(req.body);
+var HostName= req.body.CreateSensor.HostName;
+var TenantId= req.body.CreateSensor.TenantId;	
+var alternateIdSensor = req.body.CreateSensor.alternateIdSensor;
+var SensorName = req.body.CreateSensor.SensorName;
+var capabilityId = req.body.CreateSensor.capabilityId;
+var sensorType = req.body.CreateSensor.sensorType;
+var ResponseArray = [];
+//var UOM = req.body.unitOfMeasure;
+	console.log ("Hi below is request body for POST");
+	//console.log(fs.readFileSync(CERTIFICATE_FILE));
+		async.each(SensorName, function (eachSensor, callback) {
+			var currentitem = SensorName.indexOf(eachSensor);
+			//console.log("Current Item"+currentitem);
+	var PostMsg=
+				{
+				"alternateId":alternateIdSensor[currentitem],
+					"capabilities":[
+						{
+							"id":capabilityId[currentitem],
+							"type":sensorType[currentitem]
+						}
+					],
+				"name":SensorName[currentitem]
+				};
+	
+			
+	var options = {
+		 method: 'POST',
+		 hostname: HostName,
+		 port: null,
+		 path: '/ibmprod/iot/core/api/v1/tenant/'+TenantId+'/sensorTypes',
+		 //cert: fs.readFileSync(CERTIFICATE_FILE_PEM),
+		 //key: fs.readFileSync(CERTIFICATE_FILE_PEM),
+         //passphrase: 'yTRWxuva3gR6HIbIhRzqe1Orfa8yulyYJy3x',
+        // "authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ=",
+		 headers: {
+		"accept": "*/*",
+    	"content-type": "application/json",
+    	"cache-control": "no-cache",
+    	"authorization": "Basic c3VkaXB0YW06SW5pdDEyMzQ="
+		}
+		/*agentOptions: {
+        pfx: fs.readFileSync(CERTIFICATE_FILE_P12),
+        passphrase: 'tHRsLVoPVeylHwRxWzOvVCxqAt1Pt8koIFS9'
+    	}*/
+	};
+	//options=JSON.stringify(options);
+	//console.log("Options="+JSON.stringify(options));
+	var dataEncoded=JSON.stringify(PostMsg);
+
+var requst=	https.request(options, function (resp) {
+		var body = '';
+		
+
+		resp.on('data', function (chunk) {
+			body += chunk;
+		  //chunks.push(chunk);
+			
+		});
+		
+		resp.on('end', function () {
+			var dat = body;
+			//var bod = Buffer.concat(chunks);
+		var msg = JSON.parse(dat);
+			//	console.log("Msg Name"+msg.name);
+				ResponseArray.push(msg.name);
+				callback(null);
+		
+		});
+
+	});
+	
+	//requst.write(postData);
+	//console.log("DataEncoded"+dataEncoded);
+	requst.write(dataEncoded);
+    requst.end();
+
+
+}, function (err) {
+		console.log("After successfully pushing data in response array");
+		//console.log("Error="+err);
+		//If any of the user creation failed may throw error.
+		if (err) {
+			// One of the iterations produced an error.
+			// All processing will now stop.
+			console.log('something went wrong');
+		} else {
+			console.log("response array is:");
+			console.log("Response Array="+ResponseArray);
+			console.log("response array length is:");
+			console.log(ResponseArray.length);
+			res.type("application/json").status(202).send(ResponseArray);
+			console.log("Success");
+		}
+	}); 
+});
 
 /*http.createServer(function (req, res) {
   res.writeHead(200, {"Content-Type": "text/plain"});
